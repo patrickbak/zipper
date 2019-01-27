@@ -88,7 +88,7 @@ public class ZipperControlView extends JFrame
         public void actionPerformed(ActionEvent e) {
             if (e.getActionCommand().equals("Add"))
             {
-                zipperModel.dodajWpisyDoArchiwum();
+                zipperModel.addEntriesToArchive();
             }
             else if (e.getActionCommand().equals("Delete"))
             {
@@ -96,7 +96,7 @@ public class ZipperControlView extends JFrame
             }
             else if (e.getActionCommand().equals("Zip"))
             {
-                zipperModel.stworzArchiwumZip();
+                zipperModel.createZipArchive();
             }
         }
     }

@@ -30,7 +30,7 @@ public class ZipperModel extends JFrame
         ArrayList list = new ArrayList();
     };
 
-    public void dodajWpisyDoArchiwum()
+    public void addEntriesToArchive()
     {
         jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         jFileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
@@ -68,7 +68,7 @@ public class ZipperModel extends JFrame
             listModel.remove(tmp[i] - i);
     }
 
-    public void stworzArchiwumZip() {
+    public void createZipArchive() {
         jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         jFileChooser.setSelectedFile(new File(System.getProperty("user.dir") + File.separator + "myname.zip"));
         int tmp = jFileChooser.showDialog(rootPane, "Compress");
@@ -83,13 +83,13 @@ public class ZipperModel extends JFrame
                 for (int i = 0; i < listModel.getSize(); i++)
                 {
                     if (!((File) listModel.get(i)).isDirectory())
-                        zipuj(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
+                        createZip(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
                     else
                     {
                         writePaths((File) listModel.get(i));
 
                         for (int j = 0; j < listOfPaths.size(); j++)
-                            zipuj(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
+                            createZip(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
                     }
 
                     listOfPaths.removeAll(listOfPaths);
@@ -103,7 +103,7 @@ public class ZipperModel extends JFrame
             }
         }
     }
-    private void zipuj(ZipOutputStream zOutS, File filePath, byte[] tmpData, String baseDirectory) throws IOException
+    private void createZip(ZipOutputStream zOutS, File filePath, byte[] tmpData, String baseDirectory) throws IOException
     {
         BufferedInputStream inS = new BufferedInputStream(new FileInputStream(filePath), BUFFOR);
 
