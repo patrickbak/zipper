@@ -1,7 +1,11 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
+import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -19,7 +23,10 @@ public class ZipperModel extends JFrame
         @Override
         public void addElement(Object obj) {
             list.add(obj);
-            super.addElement(((File)obj).getName());
+            if (obj.getClass() == ZipEntry.class)
+                super.addElement(((ZipEntry)obj).getName());
+            else
+                super.addElement(((File)obj).getName());
         }
         @Override
         public Object remove(int index) {
@@ -36,7 +43,7 @@ public class ZipperModel extends JFrame
         jFileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         jFileChooser.setMultiSelectionEnabled(true);
 
-        int tmp = jFileChooser.showDialog(rootPane, "Add to archive");
+        int tmp = jFileChooser.showDialog(getParent(), "Add to archive");
 
         if (tmp == JFileChooser.APPROVE_OPTION)
         {
@@ -50,12 +57,16 @@ public class ZipperModel extends JFrame
         }
     }
 
-    private boolean isEntryRepeated(String testedEntry)
+    public boolean isEntryRepeated(String testedEntry)
     {
         for (int i = 0; i < listModel.getSize(); i++)
         {
-            if (((File) listModel.get(i)).getPath().equals(testedEntry))
-                return true;
+            if (listModel.get(i).getClass() == File.class)
+                if (((File) listModel.get(i)).getPath().equals(testedEntry))
+                    return true;
+            if (listModel.get(i).getClass() == ZipEntry.class)
+                if (((ZipEntry) listModel.get(i)).getName().equals(testedEntry))
+                    return true;
         }
         return false;
     }
@@ -70,12 +81,13 @@ public class ZipperModel extends JFrame
 
     public void createZipArchive() {
         jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
-        jFileChooser.setSelectedFile(new File(System.getProperty("user.dir") + File.separator + "myname.zip"));
-        int tmp = jFileChooser.showDialog(rootPane, "Compress");
+        jFileChooser.setSelectedFile(zipFile);
+        tmp = jFileChooser.showDialog(getParent(), "Compress");
+        jFileChooser.cancelSelection();
 
         if (tmp == JFileChooser.APPROVE_OPTION)
         {
-            byte tmpData[] = new byte[BUFFOR];
+            byte[] tmpData = new byte[BUFFOR];
             try
             {
                 ZipOutputStream zOutS = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(jFileChooser.getSelectedFile()), BUFFOR));
@@ -86,7 +98,7 @@ public class ZipperModel extends JFrame
                         createZip(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
                     else
                     {
-                        writePaths((File) listModel.get(i));
+                        writePaths((File) listModel.get(i), false);
 
                         for (int j = 0; j < listOfPaths.size(); j++)
                             createZip(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
@@ -94,7 +106,6 @@ public class ZipperModel extends JFrame
 
                     listOfPaths.removeAll(listOfPaths);
                 }
-
                 zOutS.close();
             }
             catch (IOException e)
@@ -121,9 +132,14 @@ public class ZipperModel extends JFrame
 
     public static final int BUFFOR = 1024;
 
-    private void writePaths(File pathName)
+    private void writePaths(File pathName, boolean zipOnly)
     {
         String[] filesAndDirectoryNames = pathName.list();
+
+        if (zipOnly)
+            jFileChooser.setFileFilter(zipFilter);
+        else
+            jFileChooser.setFileFilter(defaultFilter);
 
         for (int i = 0; i < filesAndDirectoryNames.length; i++)
         {
@@ -133,13 +149,66 @@ public class ZipperModel extends JFrame
                 listOfPaths.add(p);
 
             if (p.isDirectory())
-                writePaths(new File(p.getPath()));
+                writePaths(new File(p.getPath()), zipOnly);
         }
     }
 
+    public void openZip()
+    {
+        jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        jFileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        jFileChooser.setMultiSelectionEnabled(false);
+        jFileChooser.setFileFilter(zipFilter);
+
+        tmp = jFileChooser.showOpenDialog(getParent());
+        jFileChooser.cancelSelection();
+        File path = jFileChooser.getSelectedFile();
+
+        if (tmp == JFileChooser.APPROVE_OPTION)
+        {
+            listModel.removeAllElements();
+            try {
+                ZipFile zipFile = new ZipFile(path);
+                Enumeration entries;
+                for (entries = zipFile.entries(); entries.hasMoreElements();) {
+                    ZipEntry entry = (ZipEntry) entries.nextElement();
+                    if (!isEntryRepeated(entry.getName()))
+                        listModel.addElement(entry);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private int tmp;
     private final JFileChooser jFileChooser = new JFileChooser();
     private JList list = new JList(listModel);
     private ArrayList listOfPaths = new ArrayList();
+    private File zipFile = new File(System.getProperty("user.dir") + File.separator + "myname.zip");
+
+    private FileFilter zipFilter = new FileFilter() {
+        @Override
+        public boolean accept(File f) {
+            return f.getName().toLowerCase().endsWith(".zip");
+        }
+
+        @Override
+        public String getDescription() {
+            return "Zip Archive";
+        }
+    };
+    private FileFilter defaultFilter = new FileFilter() {
+        @Override
+        public boolean accept(File f) {
+            return false;
+        }
+
+        @Override
+        public String getDescription() {
+            return "All files";
+        }
+    };
 
     public JList getList() {
         return list;
