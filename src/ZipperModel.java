@@ -57,7 +57,7 @@ public class ZipperModel extends JFrame
         }
     }
 
-    public boolean isEntryRepeated(String testedEntry)
+    private boolean isEntryRepeated(String testedEntry)
     {
         for (int i = 0; i < listModel.getSize(); i++)
         {
@@ -130,7 +130,7 @@ public class ZipperModel extends JFrame
         inS.close();
     }
 
-    public static final int BUFFOR = 1024;
+    private static final int BUFFOR = 1024;
 
     private void writePaths(File pathName, boolean zipOnly)
     {
