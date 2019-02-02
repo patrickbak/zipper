@@ -1,6 +1,5 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
-import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -39,6 +38,7 @@ public class ZipperModel extends JFrame
 
     public void addEntriesToArchive()
     {
+        zipOnly = false;
         jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         jFileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         jFileChooser.setMultiSelectionEnabled(true);
@@ -47,12 +47,16 @@ public class ZipperModel extends JFrame
 
         if (tmp == JFileChooser.APPROVE_OPTION)
         {
-            File[] paths = jFileChooser.getSelectedFiles();
 
-            for (int i = 0; i < paths.length; i++)
+            if (!exceptionHandler())
             {
-                if (!isEntryRepeated(paths[i].getPath()))
-                    listModel.addElement(paths[i]);
+                File[] paths = jFileChooser.getSelectedFiles();
+
+                for (int i = 0; i < paths.length; i++)
+                {
+                    if (!isEntryRepeated(paths[i].getPath()))
+                        listModel.addElement(paths[i]);
+                }
             }
         }
     }
@@ -80,6 +84,7 @@ public class ZipperModel extends JFrame
     }
 
     public void createZipArchive() {
+        zipOnly = true;
         jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         jFileChooser.setSelectedFile(zipFile);
         tmp = jFileChooser.showDialog(getParent(), "Compress");
@@ -87,30 +92,30 @@ public class ZipperModel extends JFrame
 
         if (tmp == JFileChooser.APPROVE_OPTION)
         {
-            byte[] tmpData = new byte[BUFFOR];
-            try
+            if (overwrite() || acceptable)
             {
-                ZipOutputStream zOutS = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(jFileChooser.getSelectedFile()), BUFFOR));
+                if (!exceptionHandler()) {
+                    byte[] tmpData = new byte[BUFFOR];
+                    try {
+                        ZipOutputStream zOutS = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(jFileChooser.getSelectedFile()), BUFFOR));
 
-                for (int i = 0; i < listModel.getSize(); i++)
-                {
-                    if (!((File) listModel.get(i)).isDirectory())
-                        createZip(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
-                    else
-                    {
-                        writePaths((File) listModel.get(i), false);
+                        for (int i = 0; i < listModel.getSize(); i++) {
+                            if (!((File) listModel.get(i)).isDirectory())
+                                createZip(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
+                            else {
+                                writePaths((File) listModel.get(i));
 
-                        for (int j = 0; j < listOfPaths.size(); j++)
-                            createZip(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
+                                for (int j = 0; j < listOfPaths.size(); j++)
+                                    createZip(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
+                            }
+
+                            listOfPaths.removeAll(listOfPaths);
+                        }
+                        zOutS.close();
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
                     }
-
-                    listOfPaths.removeAll(listOfPaths);
                 }
-                zOutS.close();
-            }
-            catch (IOException e)
-            {
-                System.out.println(e.getMessage());
             }
         }
     }
@@ -132,7 +137,7 @@ public class ZipperModel extends JFrame
 
     private static final int BUFFOR = 1024;
 
-    private void writePaths(File pathName, boolean zipOnly)
+    private void writePaths(File pathName)
     {
         String[] filesAndDirectoryNames = pathName.list();
 
@@ -149,12 +154,13 @@ public class ZipperModel extends JFrame
                 listOfPaths.add(p);
 
             if (p.isDirectory())
-                writePaths(new File(p.getPath()), zipOnly);
+                writePaths(new File(p.getPath()));
         }
     }
 
     public void openZip()
     {
+        zipOnly = true;
         jFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         jFileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         jFileChooser.setMultiSelectionEnabled(false);
@@ -166,21 +172,70 @@ public class ZipperModel extends JFrame
 
         if (tmp == JFileChooser.APPROVE_OPTION)
         {
-            listModel.removeAllElements();
-            try {
-                ZipFile zipFile = new ZipFile(path);
-                Enumeration entries;
-                for (entries = zipFile.entries(); entries.hasMoreElements();) {
-                    ZipEntry entry = (ZipEntry) entries.nextElement();
-                    if (!isEntryRepeated(entry.getName()))
-                        listModel.addElement(entry);
+            if (!exceptionHandler())
+            {
+                listModel.removeAllElements();
+                try {
+                    ZipFile zipFile = new ZipFile(path);
+                    Enumeration entries;
+                    for (entries = zipFile.entries(); entries.hasMoreElements();) {
+                        ZipEntry entry = (ZipEntry) entries.nextElement();
+                        if (!isEntryRepeated(entry.getName()))
+                            listModel.addElement(entry);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
     }
 
+    private boolean overwrite()
+    {
+        f = jFileChooser.getSelectedFile();
+        if (f.exists())
+        {
+            acceptable = false;
+            tmp = JOptionPane.showConfirmDialog(getContentPane(), "File already exists. Overwrite?", "Existing file", JOptionPane.YES_NO_OPTION);
+            if (tmp != 0)
+            {
+                createZipArchive();
+                return false;
+            }
+        }
+        else
+            acceptable = true;
+        return tmp == 0;
+    }
+
+    private boolean exceptionHandler()
+    {
+        f = jFileChooser.getSelectedFile();
+        boolean t;
+        if (zipOnly)
+        {
+            t = f.getName().toLowerCase().endsWith(".zip");
+            if (!t)
+            {
+                JOptionPane.showMessageDialog(getContentPane(), "Invalid file name! File must end with \".zip\".", "Error", JOptionPane.ERROR_MESSAGE);
+                return true;
+            }
+        }
+        else
+        {
+            if (!f.exists())
+            {
+                JOptionPane.showMessageDialog(getContentPane(), "Invalid file name!", "Error", JOptionPane.ERROR_MESSAGE);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean zipOnly;
+    private File f;
+    private boolean acceptable;
     private int tmp;
     private final JFileChooser jFileChooser = new JFileChooser();
     private JList list = new JList(listModel);
