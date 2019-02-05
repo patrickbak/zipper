@@ -22,9 +22,9 @@ public class ZipperModel extends JFrame
         @Override
         public void addElement(Object obj) {
             list.add(obj);
-            if (obj.getClass() == ZipEntry.class)
+            if (obj instanceof ZipEntry)
                 super.addElement(((ZipEntry)obj).getName());
-            else
+            else if (obj instanceof File)
                 super.addElement(((File)obj).getName());
         }
         @Override
@@ -100,13 +100,19 @@ public class ZipperModel extends JFrame
                         ZipOutputStream zOutS = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(jFileChooser.getSelectedFile()), BUFFOR));
 
                         for (int i = 0; i < listModel.getSize(); i++) {
-                            if (!((File) listModel.get(i)).isDirectory())
-                                createZip(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
-                            else {
-                                writePaths((File) listModel.get(i));
+                            if (listModel.get(i) instanceof File) {
+                                if (!((File) listModel.get(i)).isDirectory())
+                                    createZip(zOutS, (File) listModel.get(i), tmpData, ((File) listModel.get(i)).getPath());
+                                else {
+                                    writePaths((File) listModel.get(i));
 
-                                for (int j = 0; j < listOfPaths.size(); j++)
-                                    createZip(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
+                                    for (int j = 0; j < listOfPaths.size(); j++)
+                                        createZip(zOutS, (File) listOfPaths.get(j), tmpData, ((File) listModel.get(i)).getPath());
+                                }
+                            }
+                            else if (listModel.get(i) instanceof ZipEntry)
+                            {
+                                JOptionPane.showMessageDialog(getContentPane(), "Cannot create a ZIP file from Zip Entries! \nClear the list of files then add new.", "Error", JOptionPane.ERROR_MESSAGE);
                             }
 
                             listOfPaths.removeAll(listOfPaths);
@@ -190,6 +196,19 @@ public class ZipperModel extends JFrame
         }
     }
 
+    public void clearList()
+    {
+        if (listModel.getSize() > 1)
+        {
+            tmp = JOptionPane.showConfirmDialog(getContentPane(), "Are you sure you want to clear the list? \nThis operation cannot be undone.", "Warning", JOptionPane.YES_NO_OPTION);
+            if (tmp == 0)
+                for (int i = listModel.getSize() - 1; i >= 0; i--)
+                    listModel.remove(i);
+        }
+        else
+            JOptionPane.showMessageDialog(getContentPane(), "No files to clear!", "Empty list", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private boolean overwrite()
     {
         f = jFileChooser.getSelectedFile();
@@ -197,7 +216,7 @@ public class ZipperModel extends JFrame
         {
             acceptable = false;
             tmp = JOptionPane.showConfirmDialog(getContentPane(), "File already exists. Overwrite?", "Existing file", JOptionPane.YES_NO_OPTION);
-            if (tmp != 0)
+            if (tmp == 1)
             {
                 createZipArchive();
                 return false;
@@ -205,6 +224,7 @@ public class ZipperModel extends JFrame
         }
         else
             acceptable = true;
+
         return tmp == 0;
     }
 

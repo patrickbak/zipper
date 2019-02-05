@@ -13,11 +13,12 @@ public class ZipperControlView extends JFrame
     {
         this.zipperModel = zipperModel;
         this.setTitle("Zipper");
-        this.setLocationRelativeTo(null);
         this.setJMenuBar(menuBar);
+        this.setIconImage(new ImageIcon("icon.png").getImage());
 
         menuFile.add(adding);
         menuFile.add(deleting);
+        menuFile.add(Clear);
         menuFile.add(Open);
         menuFile.add(Zip);
 
@@ -25,6 +26,7 @@ public class ZipperControlView extends JFrame
         bDelete = new JButton(deleting);
         bZip = new JButton(Zip);
         bOpen = new JButton(Open);
+        bClear = new JButton(Clear);
 
         list = zipperModel.getList();
         JScrollPane scroll = new JScrollPane(list);
@@ -41,14 +43,14 @@ public class ZipperControlView extends JFrame
                         .addComponent(scroll, 100, 150, Short.MAX_VALUE)
                         .addContainerGap(0, Short.MAX_VALUE)
                         .addGroup(
-                                layout.createParallelGroup().addComponent(bAdd).addComponent(bDelete).addComponent(bOpen).addComponent(bZip)
+                                layout.createParallelGroup().addComponent(bAdd).addComponent(bDelete).addComponent(bClear).addComponent(bOpen).addComponent(bZip)
                         )
         );
         layout.setVerticalGroup(
                 layout.createParallelGroup()
                         .addComponent(scroll, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(
-                                layout.createSequentialGroup().addComponent(bAdd).addComponent(bDelete).addGap(0, 40, Short.MAX_VALUE).addComponent(bOpen).addComponent(bZip)
+                                layout.createSequentialGroup().addComponent(bAdd).addComponent(bDelete).addComponent(bClear).addGap(0, 40, Short.MAX_VALUE).addComponent(bOpen).addComponent(bZip)
                         )
         );
 
@@ -57,6 +59,8 @@ public class ZipperControlView extends JFrame
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         this.pack();
+
+        this.setLocationRelativeTo(null);
     }
 
     private JMenuBar menuBar = new JMenuBar();
@@ -66,6 +70,7 @@ public class ZipperControlView extends JFrame
     private JButton bDelete;
     private JButton bZip;
     private JButton bOpen;
+    private JButton bClear;
 
     private ZipperModel zipperModel;
     private JList list;
@@ -73,6 +78,7 @@ public class ZipperControlView extends JFrame
     private Action deleting = new PerformAction("Delete", "Delete selected entry from archive", "ctrl D", new ImageIcon("red.png"));
     private Action Zip = new PerformAction("Zip", "Create a ZIP archive", "ctrl Z");
     private Action Open = new PerformAction("Open", "Open a ZIP archive", "ctrl O");
+    private Action Clear = new PerformAction("Clear", "Clear files list", "ctrl C");
 
     private class PerformAction extends AbstractAction
     {
@@ -105,6 +111,10 @@ public class ZipperControlView extends JFrame
             else if (e.getActionCommand().equals("Open"))
             {
                 zipperModel.openZip();
+            }
+            else if (e.getActionCommand().equals("Clear"))
+            {
+                zipperModel.clearList();
             }
         }
     }
